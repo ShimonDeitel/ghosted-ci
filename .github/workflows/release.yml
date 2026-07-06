@@ -29,12 +29,15 @@ jobs:
       - name: Pick simulator device
         id: sim
         run: |
-          DEVICE=$(xcrun simctl list devices available | grep -i "iPhone 17 Pro Max" | head -1 | sed -E 's/^[[:space:]]*(.*) \(.*/\1/')
-          if [ -z "$DEVICE" ]; then
-            DEVICE=$(xcrun simctl list devices available | grep -i "iPhone" | head -1 | sed -E 's/^[[:space:]]*(.*) \(.*/\1/')
+          LINE=$(xcrun simctl list devices available | grep -i "iPhone 17 Pro Max" | head -1)
+          if [ -z "$LINE" ]; then
+            LINE=$(xcrun simctl list devices available | grep -i "iPhone" | head -1)
           fi
-          echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
-          echo "Selected device: $DEVICE"
+          NAME=$(echo "$LINE" | sed -E 's/^[[:space:]]*(.+) \(([0-9A-F-]+)\) \(.*\)[[:space:]]*$/\1/')
+          UDID=$(echo "$LINE" | sed -E 's/^[[:space:]]*(.+) \(([0-9A-F-]+)\) \(.*\)[[:space:]]*$/\2/')
+          echo "device=$NAME" >> "$GITHUB_OUTPUT"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          echo "Selected device: $NAME ($UDID)"
 
       - name: Run unit + UI tests (must fail job on failure)
         run: |
@@ -42,7 +45,7 @@ jobs:
           xcodebuild test \
             -project "$APP_NAME.xcodeproj" \
             -scheme "$SCHEME" \
-            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }}" \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
             -resultBundlePath "$RUNNER_TEMP/TestResults.xcresult" \
             2>&1 | tee "$RUNNER_TEMP/test.log"
           echo "----- TEST SUMMARY -----"
@@ -66,21 +69,21 @@ jobs:
             -project "$APP_NAME.xcodeproj" \
             -scheme "$SCHEME" \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }}" \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             CODE_SIGNING_ALLOWED=NO
-          xcrun simctl boot "${{ steps.sim.outputs.device }}" || true
-          xcrun simctl bootstatus "${{ steps.sim.outputs.device }}" -b
+          xcrun simctl boot "${{ steps.sim.outputs.udid }}" || true
+          xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
           APP_PATH=$(find "$RUNNER_TEMP/DerivedData" -name "$APP_NAME.app" -path "*Debug-iphonesimulator*" | head -1)
           echo "APP_PATH=$APP_PATH"
-          xcrun simctl install "${{ steps.sim.outputs.device }}" "$APP_PATH"
-          xcrun simctl launch "${{ steps.sim.outputs.device }}" "$BUNDLE_ID"
+          xcrun simctl install "${{ steps.sim.outputs.udid }}" "$APP_PATH"
+          xcrun simctl launch "${{ steps.sim.outputs.udid }}" "$BUNDLE_ID"
           sleep 4
 
       - name: Capture screenshot
         run: |
           mkdir -p "$RUNNER_TEMP/shots"
-          xcrun simctl io "${{ steps.sim.outputs.device }}" screenshot "$RUNNER_TEMP/shots/raw.png"
+          xcrun simctl io "${{ steps.sim.outputs.udid }}" screenshot "$RUNNER_TEMP/shots/raw.png"
           sips -g pixelWidth -g pixelHeight "$RUNNER_TEMP/shots/raw.png"
 
       - name: Resize screenshots to required App Store dimensions
