@@ -79,7 +79,13 @@ jobs:
           echo "Current simulator state: $STATE"
           if [ "$STATE" != "Booted" ]; then
             xcrun simctl boot "${{ steps.sim.outputs.udid }}"
-            timeout 120 xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+            ( xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b ) &
+            BOOT_PID=$!
+            for i in $(seq 1 120); do
+              if ! kill -0 "$BOOT_PID" 2>/dev/null; then break; fi
+              sleep 1
+            done
+            kill "$BOOT_PID" 2>/dev/null || true
           else
             echo "Simulator already booted, skipping boot/bootstatus."
           fi
