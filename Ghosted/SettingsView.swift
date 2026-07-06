@@ -57,7 +57,9 @@ struct SettingsView: View {
                                     Image(systemName: "pencil.circle").foregroundStyle(GHTheme.inkFaded)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityElement(children: .ignore)
                                 .accessibilityIdentifier("editContact_\(contact.name)")
+                                .accessibilityAddTraits(.isButton)
                             }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
