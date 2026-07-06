@@ -39,6 +39,18 @@ jobs:
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
           echo "Selected device: $NAME ($UDID)"
 
+      - name: Pre-boot simulator before running tests
+        run: |
+          xcrun simctl boot "${{ steps.sim.outputs.udid }}" || true
+          ( xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b ) &
+          BOOT_PID=$!
+          for i in $(seq 1 90); do
+            if ! kill -0 "$BOOT_PID" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          kill "$BOOT_PID" 2>/dev/null || true
+          xcrun simctl list devices | grep "${{ steps.sim.outputs.udid }}"
+
       - name: Run unit + UI tests (must fail job on failure)
         timeout-minutes: 20
         run: |
