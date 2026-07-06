@@ -114,7 +114,7 @@ jobs:
           SCREENSHOT_PATH: ${{ runner.temp }}/shots/app_6.7.png
           DISPLAY_TYPE: APP_IPHONE_67
         run: |
-          pip3 install --quiet pyjwt cryptography
+          pip3 install --quiet --break-system-packages pyjwt cryptography
           python3 asc_upload_screenshots.py
 
       - name: Import signing certificate
