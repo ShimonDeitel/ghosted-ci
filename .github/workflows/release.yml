@@ -87,8 +87,8 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             CODE_SIGNING_ALLOWED=NO
 
-          STATE=$(xcrun simctl list devices | grep "${{ steps.sim.outputs.udid }}" | sed -E 's/.*\(([A-Za-z]+)\)$/\1/')
-          echo "Current simulator state: $STATE"
+          STATE=$(xcrun simctl list devices | grep "${{ steps.sim.outputs.udid }}" | sed -E 's/.*\(([A-Za-z]+)\)[[:space:]]*$/\1/')
+          echo "Current simulator state: [$STATE]"
           if [ "$STATE" != "Booted" ]; then
             xcrun simctl boot "${{ steps.sim.outputs.udid }}"
             ( xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b ) &
