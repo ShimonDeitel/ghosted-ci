@@ -61,17 +61,21 @@ def main():
 
     # 1. find the app's editable version (PREPARE_FOR_SUBMISSION or similar)
     status, versions = req("GET", f"/apps/{APP_ID}/appStoreVersions?limit=5", token)
+    print("Raw appStoreVersions response:", json.dumps(versions, indent=2)[:3000])
     editable = None
     for v in versions["data"]:
-        st = v["attributes"]["appStoreVersionState"]
-        if st in ("PREPARE_FOR_SUBMISSION", "REJECTED", "DEVELOPER_REJECTED", "WAITING_FOR_REVIEW", "READY_FOR_SALE"):
+        attrs = v.get("attributes", {})
+        st = attrs.get("appStoreVersionState") or attrs.get("appVersionState")
+        if st and st in ("PREPARE_FOR_SUBMISSION", "REJECTED", "DEVELOPER_REJECTED", "WAITING_FOR_REVIEW", "READY_FOR_SALE"):
             editable = v
             break
     if not editable:
-        print("No suitable app store version found; listing all:", [v["attributes"]["appStoreVersionState"] for v in versions["data"]])
+        states = [v.get("attributes", {}).get("appStoreVersionState") or v.get("attributes", {}).get("appVersionState") for v in versions["data"]]
+        print("No suitable app store version found; listing all states:", states)
         sys.exit(1)
     version_id = editable["id"]
-    print(f"Using version {version_id} (state={editable['attributes']['appStoreVersionState']})")
+    found_state = editable.get("attributes", {}).get("appStoreVersionState") or editable.get("attributes", {}).get("appVersionState")
+    print(f"Using version {version_id} (state={found_state})")
 
     # 2. get localizations for this version
     status, locs = req("GET", f"/appStoreVersions/{version_id}/appStoreVersionLocalizations", token)
